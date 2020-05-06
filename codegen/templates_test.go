@@ -364,7 +364,7 @@ func TestTemplateHandler(t *testing.T) {
 	// own tests fully testing validity. This test is mainly to make sure
 	// we're getting something that looks correct back rather than an empty
 	// string.
-	if !strings.Contains(result, "nameResourceExists") {
+	if !strings.Contains(result, "resourceNameExists") {
 		t.Fatalf("unexpected result: %s", result)
 	}
 }
