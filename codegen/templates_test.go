@@ -12,44 +12,6 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 )
 
-func TestLastField(t *testing.T) {
-	testCases := []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "/transform/alphabet",
-			expected: "alphabet",
-		},
-		{
-			input:    "/transform/alphabet/{name}",
-			expected: "{name}",
-		},
-		{
-			input:    "/transform/decode/{role_name}",
-			expected: "{role_name}",
-		},
-		{
-			input:    "/transit/datakey/{plaintext}/{name}",
-			expected: "{name}",
-		},
-		{
-			input:    "/transit/export/{type}/{name}/{version}",
-			expected: "{version}",
-		},
-		{
-			input:    "/unlikely",
-			expected: "unlikely",
-		},
-	}
-	for _, testCase := range testCases {
-		actual := lastField(testCase.input)
-		if actual != testCase.expected {
-			t.Fatalf("input: %q; expected: %q; actual: %q", testCase.input, testCase.expected, actual)
-		}
-	}
-}
-
 func TestClean(t *testing.T) {
 	testCases := []struct {
 		input    string

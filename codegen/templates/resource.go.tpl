@@ -1,4 +1,5 @@
 package {{ .DirName }}
+
 // DO NOT EDIT
 // This code is generated.
 
@@ -82,8 +83,8 @@ func {{ .UpperCaseDifferentiator }}Resource() *schema.Resource {
 func create{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Get("path").(string)
-	fullPath := util.ParsePath(path, nameEndpoint, d)
-	log.Printf("[DEBUG] Creating %q", fullPath)
+	vaultPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Creating %q", vaultPath)
 
 	data := map[string]interface{}{}
 	{{- range .Parameters }}
@@ -96,13 +97,12 @@ func create{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta i
 	{{- end }}
 	{{- end }}
 
-	log.Printf("[DEBUG] Writing %q", fullPath)
-	_, err := client.Logical().Write(fullPath, data)
-	if err != nil {
-		return fmt.Errorf("error writing %q: %s", fullPath, err)
+	log.Printf("[DEBUG] Writing %q", vaultPath)
+	if _, err := client.Logical().Write(vaultPath, data); err != nil {
+		return fmt.Errorf("error writing %q: %s", vaultPath, err)
 	}
-	d.SetId(path)
-	log.Printf("[DEBUG] Wrote %q", fullPath)
+	d.SetId(vaultPath)
+	log.Printf("[DEBUG] Wrote %q", vaultPath)
 	return read{{ .UpperCaseDifferentiator }}Resource(d, meta)
 }
 {{ end }}
@@ -110,22 +110,32 @@ func create{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta i
 {{- if .SupportsRead }}
 func read{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
-	path := d.Id()
-	fullPath := util.ParsePath(path, nameEndpoint, d)
-	log.Printf("[DEBUG] Reading %q", fullPath)
+	vaultPath := d.Id()
+	log.Printf("[DEBUG] Reading %q", vaultPath)
 
-	resp, err := client.Logical().Read(fullPath)
+	resp, err := client.Logical().Read(vaultPath)
 	if err != nil {
-		return fmt.Errorf("error reading %q: %s", fullPath, err)
+		return fmt.Errorf("error reading %q: %s", vaultPath, err)
 	}
-	log.Printf("[DEBUG] Read %q", fullPath)
+	log.Printf("[DEBUG] Read %q", vaultPath)
 	if resp == nil {
-		log.Printf("[WARN] %q not found, removing from state", fullPath)
+		log.Printf("[WARN] %q not found, removing from state", vaultPath)
 		d.SetId("")
 		return nil
 	}
+	if err := d.Set("path", util.FirstField(vaultPath)); err != nil {
+        return fmt.Errorf("error setting state key 'path': %s", err)
+    }
 	{{- range .Parameters }}
-	{{- if not .IsPathParam }}
+	{{- if .IsPathParam }}
+	{{ .Name }}Val, err := util.FindPathParam("{{ .Name }}", {{ .Name }}Endpoint, vaultPath)
+    if err != nil {
+        return fmt.Errorf("error setting state key '{{ .Name }}': %s", err)
+    }
+    if err := d.Set("{{ .Name }}", {{ .Name }}Val); err != nil {
+        return fmt.Errorf("error setting state key '{{ .Name }}': %s", err)
+    }
+	{{- else }}
 	if val, ok := resp.Data["{{ .Name }}"]; ok {
         if err := d.Set("{{ .Name }}", val); err != nil {
             return fmt.Errorf("error setting state key '{{ .Name }}': %s", err)
@@ -140,9 +150,8 @@ func read{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta int
 {{- if .SupportsWrite }}
 func update{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
-	path := d.Id()
-	fullPath := util.ParsePath(path, nameEndpoint, d)
-	log.Printf("[DEBUG] Updating %q", fullPath)
+	vaultPath := d.Id()
+	log.Printf("[DEBUG] Updating %q", vaultPath)
 
 	data := map[string]interface{}{}
 	{{- range .Parameters }}
@@ -152,14 +161,10 @@ func update{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta i
 	}
 	{{- end}}
 	{{- end }}
-	defer func() {
-		d.SetId(path)
-	}()
-	_, err := client.Logical().Write(fullPath, data)
-	if err != nil {
-		return fmt.Errorf("error updating template auth backend role %q: %s", fullPath, err)
+	if _, err := client.Logical().Write(vaultPath, data); err != nil {
+		return fmt.Errorf("error updating template auth backend role %q: %s", vaultPath, err)
 	}
-	log.Printf("[DEBUG] Updated %q", fullPath)
+	log.Printf("[DEBUG] Updated %q", vaultPath)
 	return read{{ .UpperCaseDifferentiator }}Resource(d, meta)
 }
 {{ end }}
@@ -167,19 +172,17 @@ func update{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta i
 {{- if .SupportsDelete }}
 func delete{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
-	path := d.Id()
-	fullPath := util.ParsePath(path, nameEndpoint, d)
-	log.Printf("[DEBUG] Deleting %q", fullPath)
+	vaultPath := d.Id()
+	log.Printf("[DEBUG] Deleting %q", vaultPath)
 
-	_, err := client.Logical().Delete(fullPath)
-	if err != nil && !util.Is404(err) {
-		return fmt.Errorf("error deleting %q", fullPath)
+	if _, err := client.Logical().Delete(vaultPath); err != nil && !util.Is404(err) {
+		return fmt.Errorf("error deleting %q", vaultPath)
 	} else if err != nil {
-		log.Printf("[DEBUG] %q not found, removing from state", fullPath)
+		log.Printf("[DEBUG] %q not found, removing from state", vaultPath)
 		d.SetId("")
 		return nil
 	}
-	log.Printf("[DEBUG] Deleted template auth backend role %q", fullPath)
+	log.Printf("[DEBUG] Deleted template auth backend role %q", vaultPath)
 	return nil
 }
 {{ end }}
@@ -187,15 +190,14 @@ func delete{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta i
 {{- if .SupportsRead }}
 func resource{{ .UpperCaseDifferentiator }}Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
-	path := d.Id()
-	fullPath := util.ParsePath(path, nameEndpoint, d)
-	log.Printf("[DEBUG] Checking if %q exists", fullPath)
+	vaultPath := d.Id()
+	log.Printf("[DEBUG] Checking if %q exists", vaultPath)
 
-	resp, err := client.Logical().Read(fullPath)
+	resp, err := client.Logical().Read(vaultPath)
 	if err != nil {
-		return true, fmt.Errorf("error checking if %q exists: %s", fullPath, err)
+		return true, fmt.Errorf("error checking if %q exists: %s", vaultPath, err)
 	}
-	log.Printf("[DEBUG] Checked if %q exists", fullPath)
+	log.Printf("[DEBUG] Checked if %q exists", vaultPath)
 	return resp != nil, nil
 }
 {{- end }}

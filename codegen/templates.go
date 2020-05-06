@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"fmt"
+	"github.com/terraform-providers/terraform-provider-vault/util"
 	"io"
 	"io/ioutil"
 	"sort"
@@ -111,10 +112,10 @@ func (h *templateHandler) toTemplatable(parentDir, endpoint string, endpointInfo
 	// or "roles" or whatever is at the end of an endpoint's path.
 	// This is used to prefix generated variable or function names
 	// so they don't collide with the other ones in the same package.
-	lastEndpointField := clean(lastField(endpoint))
+	lastEndpointField := clean(util.LastField(endpoint))
 	t := &templatableEndpoint{
 		Endpoint:                endpoint,
-		DirName:                 clean(lastField(parentDir)),
+		DirName:                 clean(util.LastField(parentDir)),
 		UpperCaseDifferentiator: strings.Title(strings.ToLower(lastEndpointField)),
 		LowerCaseDifferentiator: strings.ToLower(lastEndpointField),
 		Parameters:              parameters,
@@ -250,17 +251,6 @@ func (e *templatableEndpoint) Validate() error {
 func clean(field string) string {
 	field = stripCurlyBraces(field)
 	return strings.Replace(field, "_", "", -1)
-}
-
-// For an endpoint like "/transform/role/{name}", returns
-// "{name}".
-func lastField(endpoint string) string {
-	endpointFields := strings.Split(endpoint, "/")
-	lastFieldPosition := len(endpointFields) - 1
-	if lastFieldPosition < 0 {
-		lastFieldPosition = 0
-	}
-	return endpointFields[lastFieldPosition]
 }
 
 type templateType int

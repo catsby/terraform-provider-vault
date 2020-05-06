@@ -214,3 +214,48 @@ func ParsePath(userSuppliedPath, endpoint string, d *schema.ResourceData) string
 	}
 	return recomprised
 }
+
+// For an endpoint like "/transform/role/{name}", returns
+// "transform".
+func FirstField(endpoint string) string {
+	if strings.HasPrefix(endpoint, "/") {
+		endpoint = endpoint[1:]
+	}
+	endpointFields := strings.Split(endpoint, "/")
+	return endpointFields[0]
+}
+
+// For an endpoint like "/transform/role/{name}", returns
+// "{name}".
+func LastField(endpoint string) string {
+	endpointFields := strings.Split(endpoint, "/")
+	lastFieldPosition := len(endpointFields) - 1
+	if lastFieldPosition < 0 {
+		lastFieldPosition = 0
+	}
+	return endpointFields[lastFieldPosition]
+}
+
+func FindPathParam(param, endpoint, parsedEndpoint string) (string, error) {
+	// Locate the index where the param is located.
+	fields := strings.Split(endpoint, "/")
+	location := -1
+	needle := fmt.Sprintf("{%s}", param)
+	for i, field := range fields {
+		if field == needle {
+			location = i
+			break
+		}
+	}
+	if location == -1 {
+		return "", fmt.Errorf("unable to find templated field of %q in %q", needle, endpoint)
+	}
+
+	// Now return the field at the identical location in the
+	// Vault path.
+	fields = strings.Split(parsedEndpoint, "/")
+	if len(fields) <= location {
+		return "", fmt.Errorf("templated field %q for %q not in %q", needle, endpoint, parsedEndpoint)
+	}
+	return fields[location], nil
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/hashicorp/vault/api"
@@ -19,10 +20,9 @@ var nameTestProvider = func() *schema.Provider {
 	return p
 }()
 
-func TestRoleNameBasic(t *testing.T) {
-	//path := acctest.RandomWithPrefix("transform")
-	//role := acctest.RandomWithPrefix("test-role")
-	//config := basicConfig(path, role, "ccn-fpe")
+func TestRoleName(t *testing.T) {
+	path := acctest.RandomWithPrefix("transform")
+	role := acctest.RandomWithPrefix("test-role")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() { util.TestAccPreCheck(t) },
@@ -32,36 +32,28 @@ func TestRoleNameBasic(t *testing.T) {
 		//CheckDestroy: destroy,
 		Steps: []resource.TestStep{
 			{
-				Config: `resource "vault_mount" "mount_transform" {
-  path = "transform"
-  type = "transform"
-}
-resource "vault_transform_role_name" "transform_role_name" {
-  path = vault_mount.mount_transform.path
-  name = "foo"
-  transformations = ["ccn-fpe"]
-}`,
+				Config: basicConfig(path, role, "ccn-fpe"),
 				//Check: resource.ComposeTestCheckFunc(
-				//	//resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
-				//	//resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", "name"),
-				//	//resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe"),
-				//	//resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
+				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
+				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
+				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe"),
+				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
 				//),
 			},
 			//{
-			//	Config: basicConfig(path, "ccn-fpe+updated"),
+			//	Config: basicConfig(path, role, "ccn-fpe+updated"),
 			//	Check: resource.ComposeTestCheckFunc(
 			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
-			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", "name"),
+			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
 			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe+updated"),
 			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
 			//	),
 			//},
-			//{
-			//	ResourceName:      "vault_transform_role_name.test",
-			//	ImportState:       true,
-			//	ImportStateVerify: true,
-			//},
+			{
+				ResourceName:      "vault_transform_role_name.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

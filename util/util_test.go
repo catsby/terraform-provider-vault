@@ -159,3 +159,89 @@ func TestParsePath(t *testing.T) {
 		t.Fatalf("received unexpected result: %s", result)
 	}
 }
+
+func TestFirstField(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "/transform/alphabet",
+			expected: "transform",
+		},
+		{
+			input:    "/transform/alphabet/{name}",
+			expected: "transform",
+		},
+		{
+			input:    "transform/decode/{role_name}",
+			expected: "transform",
+		},
+		{
+			input:    "/transit/datakey/{plaintext}/{name}",
+			expected: "transit",
+		},
+		{
+			input:    "/transit/export/{type}/{name}/{version}",
+			expected: "transit",
+		},
+		{
+			input:    "/unlikely",
+			expected: "unlikely",
+		},
+	}
+	for _, testCase := range testCases {
+		actual := FirstField(testCase.input)
+		if actual != testCase.expected {
+			t.Fatalf("input: %q; expected: %q; actual: %q", testCase.input, testCase.expected, actual)
+		}
+	}
+}
+
+func TestLastField(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "/transform/alphabet",
+			expected: "alphabet",
+		},
+		{
+			input:    "/transform/alphabet/{name}",
+			expected: "{name}",
+		},
+		{
+			input:    "/transform/decode/{role_name}",
+			expected: "{role_name}",
+		},
+		{
+			input:    "/transit/datakey/{plaintext}/{name}",
+			expected: "{name}",
+		},
+		{
+			input:    "/transit/export/{type}/{name}/{version}",
+			expected: "{version}",
+		},
+		{
+			input:    "/unlikely",
+			expected: "unlikely",
+		},
+	}
+	for _, testCase := range testCases {
+		actual := LastField(testCase.input)
+		if actual != testCase.expected {
+			t.Fatalf("input: %q; expected: %q; actual: %q", testCase.input, testCase.expected, actual)
+		}
+	}
+}
+
+func TestFindPathParam(t *testing.T) {
+	result, err := FindPathParam("name", "/transform/role/{name}", "/transform-871579982787661105/role/test-role-1552158033528510285")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result != "test-role-1552158033528510285" {
+		t.Fatalf("expected %q but received %q", "test-role-1552158033528510285", result)
+	}
+}
