@@ -29,26 +29,26 @@ func TestRoleName(t *testing.T) {
 		Providers: map[string]terraform.ResourceProvider{
 			"vault": nameTestProvider.ResourceProvider(),
 		},
-		//CheckDestroy: destroy,
+		CheckDestroy: destroy,
 		Steps: []resource.TestStep{
 			{
 				Config: basicConfig(path, role, "ccn-fpe"),
-				//Check: resource.ComposeTestCheckFunc(
-				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
-				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
-				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe"),
-				//	resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
-				//),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe"),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
+				),
 			},
-			//{
-			//	Config: basicConfig(path, role, "ccn-fpe+updated"),
-			//	Check: resource.ComposeTestCheckFunc(
-			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
-			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
-			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe+updated"),
-			//		resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
-			//	),
-			//},
+			{
+				Config: basicConfig(path, role, "ccn-fpe+updated"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "path", path),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "name", role),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.0", "ccn-fpe+updated"),
+					resource.TestCheckResourceAttr("vault_transform_role_name.test", "transformations.#", "1"),
+				),
+			},
 			{
 				ResourceName:      "vault_transform_role_name.test",
 				ImportState:       true,
