@@ -99,44 +99,44 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			input:       &templatableEndpoint{},
-			expectedErr: "endpoint cannot be blank for &{Endpoint: DirName: ExportedFuncPrefix: PrivateFuncPrefix: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
+			expectedErr: "endpoint cannot be blank for &{Endpoint: DirName: UpperCaseDifferentiator: LowerCaseDifferentiator: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
 		},
 		{
 			input: &templatableEndpoint{
 				Endpoint: "foo",
 			},
-			expectedErr: "dirname cannot be blank for &{Endpoint:foo DirName: ExportedFuncPrefix: PrivateFuncPrefix: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
+			expectedErr: "dirname cannot be blank for &{Endpoint:foo DirName: UpperCaseDifferentiator: LowerCaseDifferentiator: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
 		},
 		{
 			input: &templatableEndpoint{
 				Endpoint: "foo",
 				DirName:  "foo",
 			},
-			expectedErr: "exported function prefix cannot be blank for &{Endpoint:foo DirName:foo ExportedFuncPrefix: PrivateFuncPrefix: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
+			expectedErr: "exported function prefix cannot be blank for &{Endpoint:foo DirName:foo UpperCaseDifferentiator: LowerCaseDifferentiator: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
 			},
-			expectedErr: "private function prefix cannot be blank for &{Endpoint:foo DirName:foo ExportedFuncPrefix:foo PrivateFuncPrefix: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
+			expectedErr: "private function prefix cannot be blank for &{Endpoint:foo DirName:foo UpperCaseDifferentiator:foo LowerCaseDifferentiator: Parameters:[] SupportsRead:false SupportsWrite:false SupportsDelete:false}",
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
-				PrivateFuncPrefix:  "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
+				LowerCaseDifferentiator: "foo",
 			},
 			expectedErr: "",
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
-				PrivateFuncPrefix:  "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
+				LowerCaseDifferentiator: "foo",
 				Parameters: []*templatableParam{
 					{
 						OASParameter: &framework.OASParameter{
@@ -152,10 +152,10 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
-				PrivateFuncPrefix:  "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
+				LowerCaseDifferentiator: "foo",
 				Parameters: []*templatableParam{
 					{
 						OASParameter: &framework.OASParameter{
@@ -171,10 +171,10 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
-				PrivateFuncPrefix:  "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
+				LowerCaseDifferentiator: "foo",
 				Parameters: []*templatableParam{
 					{
 						OASParameter: &framework.OASParameter{
@@ -193,10 +193,10 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			input: &templatableEndpoint{
-				Endpoint:           "foo",
-				DirName:            "foo",
-				ExportedFuncPrefix: "foo",
-				PrivateFuncPrefix:  "foo",
+				Endpoint:                "foo",
+				DirName:                 "foo",
+				UpperCaseDifferentiator: "foo",
+				LowerCaseDifferentiator: "foo",
 				Parameters: []*templatableParam{
 					{
 						OASParameter: &framework.OASParameter{
@@ -313,7 +313,7 @@ func TestToTemplatableParam(t *testing.T) {
 					Required:   true,
 					Deprecated: true,
 				},
-				ForceNew: true,
+				IsPathParam: true,
 			},
 		},
 		{
@@ -338,7 +338,7 @@ func TestToTemplatableParam(t *testing.T) {
 					Required:   false,
 					Deprecated: false,
 				},
-				ForceNew: false,
+				IsPathParam: false,
 			},
 		},
 	}

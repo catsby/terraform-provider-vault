@@ -154,8 +154,8 @@ func TestParsePath(t *testing.T) {
 	}, map[string]interface{}{
 		"name": "foo",
 	})
-	result := ParsePath("transform", "/transform/role/{name}", d)
-	if result != "/transform/role/foo" {
+	result := ParsePath("my-transform", "/transform/role/{name}", d)
+	if result != "/my-transform/role/foo" {
 		t.Fatalf("received unexpected result: %s", result)
 	}
 }

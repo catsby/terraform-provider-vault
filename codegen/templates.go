@@ -113,14 +113,14 @@ func (h *templateHandler) toTemplatable(parentDir, endpoint string, endpointInfo
 	// so they don't collide with the other ones in the same package.
 	lastEndpointField := clean(lastField(endpoint))
 	t := &templatableEndpoint{
-		Endpoint:           lastEndpointField,
-		DirName:            clean(lastField(parentDir)),
-		ExportedFuncPrefix: strings.Title(strings.ToLower(lastEndpointField)),
-		PrivateFuncPrefix:  strings.ToLower(lastEndpointField),
-		Parameters:         parameters,
-		SupportsRead:       endpointInfo.Get != nil,
-		SupportsWrite:      endpointInfo.Post != nil,
-		SupportsDelete:     endpointInfo.Delete != nil,
+		Endpoint:                endpoint,
+		DirName:                 clean(lastField(parentDir)),
+		UpperCaseDifferentiator: strings.Title(strings.ToLower(lastEndpointField)),
+		LowerCaseDifferentiator: strings.ToLower(lastEndpointField),
+		Parameters:              parameters,
+		SupportsRead:            endpointInfo.Get != nil,
+		SupportsWrite:           endpointInfo.Post != nil,
+		SupportsDelete:          endpointInfo.Delete != nil,
 	}
 	if err := t.Validate(); err != nil {
 		return nil, err
@@ -166,10 +166,10 @@ func collectParameters(endpointInfo *framework.OASPathItem) []*templatableParam 
 }
 
 // templatableParam mainly just reuses the OASParameter,
-// but adds on a ForceNew bool.
+// but adds on a IsPathParam bool.
 type templatableParam struct {
 	*framework.OASParameter
-	ForceNew bool
+	IsPathParam bool
 }
 
 func toTemplatableParam(param framework.OASParameter, isPathParameter bool) *templatableParam {
@@ -184,7 +184,7 @@ func toTemplatableParam(param framework.OASParameter, isPathParameter bool) *tem
 	}
 	return &templatableParam{
 		OASParameter: ptrToParam,
-		ForceNew:     isPathParameter,
+		IsPathParam:  isPathParameter,
 	}
 }
 
@@ -193,14 +193,14 @@ func toTemplatableParam(param framework.OASParameter, isPathParameter bool) *tem
 // rather than in Go's templating language, because most folks are more
 // familiar with Go.
 type templatableEndpoint struct {
-	Endpoint           string
-	DirName            string
-	ExportedFuncPrefix string
-	PrivateFuncPrefix  string
-	Parameters         []*templatableParam
-	SupportsRead       bool
-	SupportsWrite      bool
-	SupportsDelete     bool
+	Endpoint                string
+	DirName                 string
+	UpperCaseDifferentiator string
+	LowerCaseDifferentiator string
+	Parameters              []*templatableParam
+	SupportsRead            bool
+	SupportsWrite           bool
+	SupportsDelete          bool
 }
 
 func (e *templatableEndpoint) Validate() error {
@@ -213,10 +213,10 @@ func (e *templatableEndpoint) Validate() error {
 	if e.DirName == "" {
 		return fmt.Errorf("dirname cannot be blank for %+v", e)
 	}
-	if e.ExportedFuncPrefix == "" {
+	if e.UpperCaseDifferentiator == "" {
 		return fmt.Errorf("exported function prefix cannot be blank for %+v", e)
 	}
-	if e.PrivateFuncPrefix == "" {
+	if e.LowerCaseDifferentiator == "" {
 		return fmt.Errorf("private function prefix cannot be blank for %+v", e)
 	}
 	for _, parameter := range e.Parameters {

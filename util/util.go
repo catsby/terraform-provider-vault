@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -92,6 +94,15 @@ func IsExpiredTokenErr(err error) bool {
 		return true
 	}
 	return false
+}
+
+func TestAccPreCheck(t *testing.T) {
+	if v := os.Getenv("VAULT_ADDR"); v == "" {
+		t.Fatal("VAULT_ADDR must be set for acceptance tests")
+	}
+	if v := os.Getenv("VAULT_TOKEN"); v == "" {
+		t.Fatal("VAULT_TOKEN must be set for acceptance tests")
+	}
 }
 
 func TestCheckResourceAttrJSON(name, key, expectedValue string) resource.TestCheckFunc {

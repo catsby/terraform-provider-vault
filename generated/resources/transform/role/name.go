@@ -13,7 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-vault/util"
 )
 
-const nameEndpoint = "name"
+const nameEndpoint = "/transform/role/{name}"
 
 func NameResource() *schema.Resource {
 	fields := map[string]*schema.Schema{
@@ -40,56 +40,54 @@ func NameResource() *schema.Resource {
 		},
 	}
 	return &schema.Resource{
-		Create: nameCreateResource,
-		Update: nameUpdateResource,
-		Read:   nameReadResource,
-		Exists: nameResourceExists,
-		Delete: nameDeleteResource,
+		Create: createNameResource,
+		Update: updateNameResource,
+		Read:   readNameResource,
+		Exists: resourceNameExists,
+		Delete: deleteNameResource,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Schema: fields,
 	}
 }
-func nameCreateResource(d *schema.ResourceData, meta interface{}) error {
+func createNameResource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Get("path").(string)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Creating %q", fullPath)
+
 	data := map[string]interface{}{}
-	if v, ok := d.GetOkExists("name"); ok {
-		data["name"] = v
-	}
+	data["name"] = d.Get("name")
 	if v, ok := d.GetOkExists("transformations"); ok {
 		data["transformations"] = v
 	}
 
-	log.Printf("[DEBUG] Writing %q", path)
-	_, err := client.Logical().Write(util.ParsePath(path, nameEndpoint, d), data)
+	log.Printf("[DEBUG] Writing %q", fullPath)
+	_, err := client.Logical().Write(fullPath, data)
 	if err != nil {
-		return fmt.Errorf("error writing %q: %s", path, err)
+		return fmt.Errorf("error writing %q: %s", fullPath, err)
 	}
 	d.SetId(path)
-	log.Printf("[DEBUG] Wrote %q", path)
-	return nameReadResource(d, meta)
+	log.Printf("[DEBUG] Wrote %q", fullPath)
+	return readNameResource(d, meta)
 }
 
-func nameReadResource(d *schema.ResourceData, meta interface{}) error {
+func readNameResource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Reading %q", path)
-	resp, err := client.Logical().Read(util.ParsePath(path, nameEndpoint, d))
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Reading %q", fullPath)
+
+	resp, err := client.Logical().Read(fullPath)
 	if err != nil {
-		return fmt.Errorf("error reading %q: %s", path, err)
+		return fmt.Errorf("error reading %q: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Read %q", path)
+	log.Printf("[DEBUG] Read %q", fullPath)
 	if resp == nil {
-		log.Printf("[WARN] %q not found, removing from state", path)
+		log.Printf("[WARN] %q not found, removing from state", fullPath)
 		d.SetId("")
 		return nil
-	}
-	if val, ok := resp.Data["name"]; ok {
-		if err := d.Set("name", val); err != nil {
-			return fmt.Errorf("error setting state key 'name': %s", err)
-		}
 	}
 	if val, ok := resp.Data["transformations"]; ok {
 		if err := d.Set("transformations", val); err != nil {
@@ -99,52 +97,55 @@ func nameReadResource(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func nameUpdateResource(d *schema.ResourceData, meta interface{}) error {
+func updateNameResource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Updating %q", path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Updating %q", fullPath)
+
 	data := map[string]interface{}{}
-	if d.HasChange("name") {
-		data["name"] = d.Get("name")
-	}
 	if d.HasChange("transformations") {
 		data["transformations"] = d.Get("transformations")
 	}
 	defer func() {
 		d.SetId(path)
 	}()
-	_, err := client.Logical().Write(util.ParsePath(path, nameEndpoint, d), data)
+	_, err := client.Logical().Write(fullPath, data)
 	if err != nil {
-		return fmt.Errorf("error updating template auth backend role %q: %s", path, err)
+		return fmt.Errorf("error updating template auth backend role %q: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Updated %q", path)
-	return nameReadResource(d, meta)
+	log.Printf("[DEBUG] Updated %q", fullPath)
+	return readNameResource(d, meta)
 }
 
-func nameDeleteResource(d *schema.ResourceData, meta interface{}) error {
+func deleteNameResource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Deleting %q", path)
-	_, err := client.Logical().Delete(path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Deleting %q", fullPath)
+
+	_, err := client.Logical().Delete(fullPath)
 	if err != nil && !util.Is404(err) {
-		return fmt.Errorf("error deleting %q", path)
+		return fmt.Errorf("error deleting %q", fullPath)
 	} else if err != nil {
-		log.Printf("[DEBUG] %q not found, removing from state", path)
+		log.Printf("[DEBUG] %q not found, removing from state", fullPath)
 		d.SetId("")
 		return nil
 	}
-	log.Printf("[DEBUG] Deleted template auth backend role %q", path)
+	log.Printf("[DEBUG] Deleted template auth backend role %q", fullPath)
 	return nil
 }
 
-func nameResourceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func resourceNameExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Checking if %q exists", path)
-	resp, err := client.Logical().Read(path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Checking if %q exists", fullPath)
+
+	resp, err := client.Logical().Read(fullPath)
 	if err != nil {
-		return true, fmt.Errorf("error checking if %q exists: %s", path, err)
+		return true, fmt.Errorf("error checking if %q exists: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Checked if %q exists", path)
+	log.Printf("[DEBUG] Checked if %q exists", fullPath)
 	return resp != nil, nil
 }

@@ -9,18 +9,16 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/vault/api"
-	{{- if .SupportsWrite }}
 	"github.com/terraform-providers/terraform-provider-vault/util"
-	{{- end }}
 )
 
 {{- if .SupportsWrite }}
-const {{ .PrivateFuncPrefix }}Endpoint = "{{ .Endpoint }}"
+const {{ .LowerCaseDifferentiator }}Endpoint = "{{ .Endpoint }}"
 {{- else }}
 // This resource supports "{{ .Endpoint }}".
 {{ end }}
 
-func {{ .ExportedFuncPrefix }}Resource() *schema.Resource {
+func {{ .UpperCaseDifferentiator }}Resource() *schema.Resource {
 	fields := map[string]*schema.Schema{
 		"path": {
 			Type:        schema.TypeString,
@@ -55,7 +53,7 @@ func {{ .ExportedFuncPrefix }}Resource() *schema.Resource {
 			Sensitive:   true,
 			{{- end }}
 			Description: "{{ .Description }}",
-			{{- if .ForceNew }}
+			{{- if .IsPathParam }}
 			ForceNew: true,
 			{{- end}}
 		},
@@ -63,15 +61,15 @@ func {{ .ExportedFuncPrefix }}Resource() *schema.Resource {
 	}
 	return &schema.Resource{
 		{{- if .SupportsWrite }}
-		Create: {{ .PrivateFuncPrefix }}CreateResource,
-		Update: {{ .PrivateFuncPrefix }}UpdateResource,
+		Create: create{{ .UpperCaseDifferentiator }}Resource,
+		Update: update{{ .UpperCaseDifferentiator }}Resource,
 		{{- end }}
 		{{- if .SupportsRead }}
-		Read:   {{ .PrivateFuncPrefix }}ReadResource,
-		Exists: {{ .PrivateFuncPrefix }}ResourceExists,
+		Read:   read{{ .UpperCaseDifferentiator }}Resource,
+		Exists: resource{{ .UpperCaseDifferentiator }}Exists,
 		{{- end }}
 		{{- if .SupportsDelete }}
-		Delete: {{ .PrivateFuncPrefix }}DeleteResource,
+		Delete: delete{{ .UpperCaseDifferentiator }}Resource,
 		{{- end }}
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -81,104 +79,123 @@ func {{ .ExportedFuncPrefix }}Resource() *schema.Resource {
 }
 
 {{- if .SupportsWrite }}
-func {{ .PrivateFuncPrefix }}CreateResource(d *schema.ResourceData, meta interface{}) error {
+func create{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Get("path").(string)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Creating %q", fullPath)
+
 	data := map[string]interface{}{}
 	{{- range .Parameters }}
+	{{- if .IsPathParam}}
+	    data["{{ .Name }}"] = d.Get("{{ .Name }}")
+	{{- else }}
 	if v, ok := d.GetOkExists("{{ .Name }}"); ok {
 		data["{{ .Name }}"] = v
 	}
 	{{- end }}
+	{{- end }}
 
-	log.Printf("[DEBUG] Writing %q", path)
-	_, err := client.Logical().Write(util.ParsePath(path, nameEndpoint, d), data)
+	log.Printf("[DEBUG] Writing %q", fullPath)
+	_, err := client.Logical().Write(fullPath, data)
 	if err != nil {
-		return fmt.Errorf("error writing %q: %s", path, err)
+		return fmt.Errorf("error writing %q: %s", fullPath, err)
 	}
 	d.SetId(path)
-	log.Printf("[DEBUG] Wrote %q", path)
-	return {{ .PrivateFuncPrefix }}ReadResource(d, meta)
+	log.Printf("[DEBUG] Wrote %q", fullPath)
+	return read{{ .UpperCaseDifferentiator }}Resource(d, meta)
 }
 {{ end }}
 
 {{- if .SupportsRead }}
-func {{ .PrivateFuncPrefix }}ReadResource(d *schema.ResourceData, meta interface{}) error {
+func read{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Reading %q", path)
-	resp, err := client.Logical().Read(util.ParsePath(path, nameEndpoint, d))
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Reading %q", fullPath)
+
+	resp, err := client.Logical().Read(fullPath)
 	if err != nil {
-		return fmt.Errorf("error reading %q: %s", path, err)
+		return fmt.Errorf("error reading %q: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Read %q", path)
+	log.Printf("[DEBUG] Read %q", fullPath)
 	if resp == nil {
-		log.Printf("[WARN] %q not found, removing from state", path)
+		log.Printf("[WARN] %q not found, removing from state", fullPath)
 		d.SetId("")
 		return nil
 	}
 	{{- range .Parameters }}
+	{{- if not .IsPathParam }}
 	if val, ok := resp.Data["{{ .Name }}"]; ok {
         if err := d.Set("{{ .Name }}", val); err != nil {
             return fmt.Errorf("error setting state key '{{ .Name }}': %s", err)
         }
     }
+    {{- end }}
 	{{- end }}
 	return nil
 }
 {{ end }}
 
 {{- if .SupportsWrite }}
-func {{ .PrivateFuncPrefix }}UpdateResource(d *schema.ResourceData, meta interface{}) error {
+func update{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Updating %q", path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Updating %q", fullPath)
+
 	data := map[string]interface{}{}
 	{{- range .Parameters }}
+	{{- if not .IsPathParam}}
 	if d.HasChange("{{ .Name }}") {
 		data["{{ .Name }}"] = d.Get("{{ .Name }}")
 	}
+	{{- end}}
 	{{- end }}
 	defer func() {
 		d.SetId(path)
 	}()
-	_, err := client.Logical().Write(util.ParsePath(path, nameEndpoint, d), data)
+	_, err := client.Logical().Write(fullPath, data)
 	if err != nil {
-		return fmt.Errorf("error updating template auth backend role %q: %s", path, err)
+		return fmt.Errorf("error updating template auth backend role %q: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Updated %q", path)
-	return {{ .PrivateFuncPrefix }}ReadResource(d, meta)
+	log.Printf("[DEBUG] Updated %q", fullPath)
+	return read{{ .UpperCaseDifferentiator }}Resource(d, meta)
 }
 {{ end }}
 
 {{- if .SupportsDelete }}
-func {{ .PrivateFuncPrefix }}DeleteResource(d *schema.ResourceData, meta interface{}) error {
+func delete{{ .UpperCaseDifferentiator }}Resource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Deleting %q", path)
-	_, err := client.Logical().Delete(path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Deleting %q", fullPath)
+
+	_, err := client.Logical().Delete(fullPath)
 	if err != nil && !util.Is404(err) {
-		return fmt.Errorf("error deleting %q", path)
+		return fmt.Errorf("error deleting %q", fullPath)
 	} else if err != nil {
-		log.Printf("[DEBUG] %q not found, removing from state", path)
+		log.Printf("[DEBUG] %q not found, removing from state", fullPath)
 		d.SetId("")
 		return nil
 	}
-	log.Printf("[DEBUG] Deleted template auth backend role %q", path)
+	log.Printf("[DEBUG] Deleted template auth backend role %q", fullPath)
 	return nil
 }
 {{ end }}
 
 {{- if .SupportsRead }}
-func {{ .PrivateFuncPrefix }}ResourceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func resource{{ .UpperCaseDifferentiator }}Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*api.Client)
 	path := d.Id()
-	log.Printf("[DEBUG] Checking if %q exists", path)
-	resp, err := client.Logical().Read(path)
+	fullPath := util.ParsePath(path, nameEndpoint, d)
+	log.Printf("[DEBUG] Checking if %q exists", fullPath)
+
+	resp, err := client.Logical().Read(fullPath)
 	if err != nil {
-		return true, fmt.Errorf("error checking if %q exists: %s", path, err)
+		return true, fmt.Errorf("error checking if %q exists: %s", fullPath, err)
 	}
-	log.Printf("[DEBUG] Checked if %q exists", path)
+	log.Printf("[DEBUG] Checked if %q exists", fullPath)
 	return resp != nil, nil
 }
 {{- end }}
